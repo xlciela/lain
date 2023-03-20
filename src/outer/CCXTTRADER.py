@@ -66,10 +66,10 @@ class CCXTTrader():
     # start live klines streaming
 
     def start_klines_stream(self, callback, symbol, interval):
-        GLOBAL_RUNNING  # global variable to control the loop externally
-        GLOBAL_RUNNING = True
+        global RUNNING  # global variable to control the loop externally
+        RUNNING = True
 
-        while GLOBAL_RUNNING == True:
+        while RUNNING == True:
             res = exchange.fetch_ohlcv(
                 symbol=symbol, timeframe=interval, limit=1)
             if len(res) == 0:
