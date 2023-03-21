@@ -90,7 +90,7 @@ class CCXTTrader():
         # define how to process the streamed data
 
         # extract data from the response
-        start_time = pd.to_datetime(res[-1][0], unit='ms')
+        incoming_latest_time = pd.to_datetime(res[-1][0], unit='ms')
         first = res[-1][1]
         high = res[-1][2]
         low = res[-1][3]
@@ -98,7 +98,7 @@ class CCXTTrader():
         volume = res[-1][5]
 
         # check if a bar is complete
-        if start_time == self.last_bar_time:
+        if incoming_latest_time == self.last_bar_time:
             complete = False
         else:  # a new bar is created => add the first bar # res[0]
             complete = True
@@ -107,12 +107,15 @@ class CCXTTrader():
                                                      res[0][2], res[0][3], res[0][4], res[0][5]]
             else:
                 self.data.loc[self.last_bar_time, 'Complete'] = complete
-            self.last_bar_time = start_time  # update the last bar time
+            self.last_bar_time = incoming_latest_time  # update the last bar time
 
         # print sth
         print('.', end='', flush=True)
 
-        # feed self.data<df> with the latest completed bar
+        # always feed self.data:df with the latest bar
+        self.data.loc[incoming_latest_time] = [
+            first, high, low, close, volume, False]
+
         if complete:
             print("\n", "Define Strategy and execute Trades")
             # TODO: define strategy and execute trades
