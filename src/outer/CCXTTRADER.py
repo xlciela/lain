@@ -15,7 +15,7 @@ exchange.set_sandbox_mode(True)
 class CCXTTrader():
     def __init__(self, symbol, timeFrame):
         self.symbol = symbol
-        self.timeFrame = timeFrame
+        self.time_frame = timeFrame
         self.get_available_intervals()
 
     def get_available_intervals(self):
@@ -23,21 +23,23 @@ class CCXTTrader():
         I = []
         for key, _ in exchange.timeframes.items():
             I.append(key)
-        self.availableIntervals = I
+        self.available_intervals = I
 
+    # start_trading: get historical data and start streaming live data
     def start_trading(self, start=None, Lookback=None):
         if not Lookback:
             Lookback = 1000
-        if self.timeFrame in self.availableIntervals:
+        if self.time_frame in self.available_intervals:
+            # 1. start collecting historical data with Lookback= 1000
             self.get_history(symbol=self.symbol,
-                             interval=self.timeFrame, limit=Lookback)
-
+                             interval=self.time_frame, limit=Lookback)
+            # 2. start streaming live data
             thread = Thread(target=self.start_klines_stream, args=(
-                self.stream_candles, self.symbol, self.timeFrame))
+                self.stream_candles, self.symbol, self.time_frame))
             thread.start()
 
+    # get most recent candles
     def get_history(self, symbol, interval, start=None, limit=1000):
-        # get most recent candles
         if start:
             start = exchange.parse8601(start)  # convert to milliseconds
 
@@ -60,32 +62,59 @@ class CCXTTrader():
         df.columns = ['Date', 'Open', 'High', 'Low', 'Close', 'Volume']
         df.Date = pd.to_datetime(df.Date, unit='ms')
         df.set_index('Date', inplace=True)
+        df["Complete"] = [True for row in range(len(df)-1)] + [False]
+        self.last_bar_time = df.index[-1]  # time@last_bar
 
-        return df
+        self.data = df
 
-    # start live klines streaming
-
+    # define streaming function
     def start_klines_stream(self, callback, symbol, interval):
-        global RUNNING  # global variable to control the loop externally
-        RUNNING = True
+        # global RUNNING  # global variable to control the loop externally
+        self.running = True
 
-        while RUNNING == True:
+        while self.running:
             res = exchange.fetch_ohlcv(
-                symbol=symbol, timeframe=interval, limit=1)
+                symbol=symbol, timeframe=interval, limit=2)
             if len(res) == 0:
                 print('no data')
             else:
                 callback(res)
             time.sleep(1)
 
+    # streaming controller
+    def stop_stream(self):
+        self.running = False
+
     # callback to handle streamed candles
     def stream_candles(self, res):
-        # stream candles
-        while True:
-            df = pd.DataFrame(res, columns=[
-                              'time', 'open', 'high', 'low', 'close', 'volume'])
-            df['time'] = pd.to_datetime(df['time'], unit='ms')
-            df = df.set_index('time')
-            self.histBars = self.histBars.append(df)
-            print('Realtime candles: ', df)
-            time.sleep(1)
+        # define how to process the streamed data
+
+        # extract data from the response
+        start_time = pd.to_datetime(res[-1][0], unit='ms')
+        first = res[-1][1]
+        high = res[-1][2]
+        low = res[-1][3]
+        close = res[-1][4]
+        volume = res[-1][5]
+
+        # check if a bar is complete
+        if start_time == self.last_bar_time:
+            complete = False
+        else:  # a new bar is created => add the first bar # res[0]
+            complete = True
+            if len(res) == 2:
+                self.data.loc[self.last_bar_time] = [res[0][1],
+                                                     res[0][2], res[0][3], res[0][4], res[0][5]]
+            else:
+                self.data.loc[self.last_bar_time, 'Complete'] = complete
+            self.last_bar_time = start_time  # update the last bar time
+
+        # print sth
+        print('.', end='', flush=True)
+
+        # feed self.data<df> with the latest completed bar
+        if complete:
+            print("\n", "Define Strategy and execute Trades")
+            # TODO: define strategy and execute trades
+            # self.define_strategy()
+            # self.execute_trades()
