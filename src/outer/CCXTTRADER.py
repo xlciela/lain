@@ -2,14 +2,7 @@ import ccxt
 import pandas as pd
 import time
 from threading import Thread
-
-# instantiation of exchange
-exchange = ccxt.binancecoinm({
-    'apiKey': '296015e94a672f83bfb4076908741a255cd5c9f192da047d12eb63cff4c73a7e',
-    'secret': '4ecd9157f7b1a8486742374e9627d4ae4cfca3b997d1532ef447dc915fad62f5',
-    'enableRateLimit': True,
-})
-exchange.set_sandbox_mode(True)
+from Exchange import exchange
 
 
 class CCXTTrader():
