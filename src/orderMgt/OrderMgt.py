@@ -11,15 +11,24 @@ class OrderMgt:
         return cls._instance
 
     def __init__(self, exchange):
-        self.orders = []
+        self.orders = {}
         self.positions = {}
         self.exchange = exchange
 
-    def add_order(self, order):
-        self.orders.append(order)
+    def update_orders(self, symbol):
+        # test
+        orders = self.exchange.fetch_open_orders(symbol)
+        self.orders.update({symbol: orders})
 
-    def remove_order(self, order):
-        self.orders.remove(order)
+    def remove_order(self, symbol, id):
+        # test
+        index = -1
+        for i, order in enumerate(self.orders[symbol]):
+            if order['orderId'] == id:
+                index = i
+                break
+        if index != -1:  # find the target order to remove
+            self.orders[symbol].pop(index)
 
     def get_orders(self):
         return self.orders
