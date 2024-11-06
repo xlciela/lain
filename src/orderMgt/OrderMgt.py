@@ -1,9 +1,18 @@
 # orderMgt module
-from typing import List
+from abc import ABCMeta, abstractmethod
+from typing import List, Union
+
+# interface
 
 
-class OrderMgt:
-    _instance = None
+class Observer(metaclass=ABCMeta):
+    @abstractmethod
+    def update(self, symbol: str, signal=None):
+        pass
+
+
+class OrderMgt(Observer):
+    _instance: Union[type['OrderMgt'], None] = None
 
     def __new__(cls):
         if cls._instance is None:
@@ -14,6 +23,23 @@ class OrderMgt:
         self.orders = {}
         self.positions = {}
         self.exchange = exchange
+
+    # TODO: override update method
+    def update(self, symbol: str, signal=None):
+        print(
+            f'the order manager gets notified with the {signal} and will try to execute the trade...')
+        if not signal:
+            if signal == 'LONG':
+                # TODO: execute long trade
+                # self.execute_long_trade(symbol)
+                pass
+            elif signal == 'SHORT':
+                # TODO: execute short trade
+                # self.execute_short_trade(symbol)
+                pass
+            else:
+                # TODO: go neutral
+                pass
 
     def update_orders(self, symbol):
         # test
@@ -33,7 +59,7 @@ class OrderMgt:
     def get_orders(self):
         return self.orders
 
-    def get_positions(self, symbol) -> dict:
+    def get_positions(self, symbol) -> None:
         # get balance @symbol => {asset, bal, unrealizedProfit,...rest}
         res: List = self.exchange.fetch_positions_risk([symbol])
         pos: List = list(filter(lambda x: x['contracts'] != 0, res))
